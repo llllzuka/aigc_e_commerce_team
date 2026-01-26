@@ -116,3 +116,6 @@ aibote(windows cpu克隆人)：[‬‍‬‍⁠﻿‍‍‍‌﻿﻿https://qqk9
 **交流群及资料教程**关注公众号 **fay数字人**（**请先star本仓库**）
 
 ![](readme/gzh.jpg)
+
+
+git测试
