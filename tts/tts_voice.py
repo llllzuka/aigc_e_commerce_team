@@ -79,12 +79,32 @@ class EnumVoice(Enum):
             "cheerful": "cheerful"
         }
     }
-
-
+    QWEN3_FEMALE = {
+        "name": "Qwen3-灵动女声",
+        "voiceName": "vivian",
+        "styleList": {
+            "angry": "用非常生气、严厉的语气说话",
+            "lyrical": "用温柔、感性、充满感情的语气说话",
+            "calm": "用平稳、自然、淡定的语气说话",
+            "assistant": "用专业、有礼貌的助手语气说话",
+            "cheerful": "用开朗、活泼、阳光的语气说话"
+        }
+    }
+    QWEN3_MALE = {
+        "name": "Qwen3-稳重男声",
+        "voiceName": "eric",
+        "styleList": {
+            "angry": "用愤怒、低沉、严肃的语气说话",
+            "lyrical": "用深情、温柔、儒雅的语气说话",
+            "calm": "用平稳、浑厚、冷静的语气说话",
+            "assistant": "用沉稳、干练、职业的助手语气说话",
+            "cheerful": "用爽朗、阳光、充满活力的语气说话"
+        }
+    }
 
 
 def get_voice_list():
-    return [EnumVoice.XIAO_XIAO_NEW, EnumVoice.YUN_XI, EnumVoice.XIAO_XIAO, EnumVoice.YUN_JIAN, EnumVoice.XIAO_YI, EnumVoice.YUN_YANG, EnumVoice.YUN_XIA]
+    return [EnumVoice.XIAO_XIAO_NEW, EnumVoice.YUN_XI, EnumVoice.XIAO_XIAO, EnumVoice.YUN_JIAN, EnumVoice.XIAO_YI, EnumVoice.YUN_YANG, EnumVoice.YUN_XIA, EnumVoice.QWEN3_FEMALE, EnumVoice.QWEN3_MALE]
 
 
 def get_voice_of(name):
