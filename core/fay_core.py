@@ -43,6 +43,8 @@ elif cfg.tts_module == 'gptsovits_v3':
     from tts.gptsovits_v3 import Speech    
 elif cfg.tts_module == 'volcano':
     from tts.volcano_tts import Speech
+elif cfg.tts_module == 'qwen3':
+    from tts.qwen3 import Speech
 else:
     from tts.ms_tts_sdk import Speech
 
@@ -109,7 +111,12 @@ class FeiFei:
 
         self.wsParam = None
         self.wss = None
-        self.sp = Speech()
+        # 强制检查配置中的 tts_module
+        if cfg.tts_module == 'qwen3':
+            from tts.qwen3 import Speech
+            self.sp = Speech()
+        else:
+            self.sp = Speech()
         self.speaking = False #声音是否在播放
         self.__running = True
         self.sp.connect()  #TODO 预连接
@@ -319,11 +326,15 @@ class FeiFei:
             if audio_url is not None:
                 file_name = 'sample-' + str(int(time.time() * 1000)) + '.wav'
                 result = self.download_wav(audio_url, './samples/', file_name)
-            elif config_util.config["interact"]["playSound"] or wsa_server.get_instance().is_connected(interact.data.get("user")) or self.__is_send_remote_device_audio(interact):#tts
-                util.printInfo(1,  interact.data.get('user'), '合成音频...')
+            else:
+                util.printInfo(1,  interact.data.get('user'), '正在请求 Qwen3-TTS 合成音频...')
                 tm = time.time()
-                result = self.sp.to_sample(text.replace("*", ""), self.__get_mood_voice())
-                util.printInfo(1,  interact.data.get('user'), '合成音频完成. 耗时: {} ms 文件:{}'.format(math.floor((time.time() - tm) * 1000), result))
+                mood_voice = self.__get_mood_voice()
+                result = self.sp.to_sample(text.replace("*", ""), mood_voice)
+                if result:
+                    util.printInfo(1,  interact.data.get('user'), '合成音频完成. 耗时: {} ms 文件:{}'.format(math.floor((time.time() - tm) * 1000), result))
+                else:
+                    util.log(1, "TTS 合成失败，请检查服务端日志")
 
             if result is not None:            
                 MyThread(target=self.__process_output_audio, args=[result, interact, text]).start()
