@@ -111,12 +111,7 @@ class FeiFei:
 
         self.wsParam = None
         self.wss = None
-        # 强制检查配置中的 tts_module
-        if cfg.tts_module == 'qwen3':
-            from tts.qwen3 import Speech
-            self.sp = Speech()
-        else:
-            self.sp = Speech()
+        self.sp = Speech()
         self.speaking = False #声音是否在播放
         self.__running = True
         self.sp.connect()  #TODO 预连接
@@ -327,7 +322,7 @@ class FeiFei:
                 file_name = 'sample-' + str(int(time.time() * 1000)) + '.wav'
                 result = self.download_wav(audio_url, './samples/', file_name)
             else:
-                util.printInfo(1,  interact.data.get('user'), '正在请求 Qwen3-TTS 合成音频...')
+                util.printInfo(1,  interact.data.get('user'), '正在请求 TTS 合成音频...')
                 tm = time.time()
                 mood_voice = self.__get_mood_voice()
                 result = self.sp.to_sample(text.replace("*", ""), mood_voice)
