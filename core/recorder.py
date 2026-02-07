@@ -3,10 +3,12 @@ import audioop
 import math
 import time
 import threading
+import os
 from abc import abstractmethod
 
 from asr.ali_nls import ALiNls
 from asr.funasr import FunASR
+from asr.qwen3_asr import Qwen3ASR
 from core import wsa_server
 from scheduler.thread_manager import MyThread
 from utils import util
@@ -52,6 +54,8 @@ class Recorder:
             asrcli = ALiNls(self.username)
         elif self.ASRMode == "funasr" or self.ASRMode == "sensevoice":
             asrcli = FunASR(self.username)
+        elif self.ASRMode == "qwen3":
+            asrcli = Qwen3ASR(self.username)
         return asrcli
 
     def save_buffer_to_file(self, buffer):
@@ -87,15 +91,23 @@ class Recorder:
         self.processing = True
         t = time.time()
         tm = time.time()
-        if self.ASRMode == "funasr"  or self.ASRMode == "sensevoice":
+        if self.ASRMode == "funasr"  or self.ASRMode == "sensevoice" or self.ASRMode == "qwen3":
             file_url = self.save_buffer_to_file(audio_data)
-            self.__aLiNls.send_url(file_url)
+            iat.send_url(file_url)
         
         # return
         # 等待结果返回
-        while not iat.done and time.time() - t < 1:
+        timeout = 10 if self.ASRMode == "qwen3" else 1
+        while not iat.done and time.time() - t < timeout:
             time.sleep(0.01)
         text = iat.finalResults
+
+        # Cleanup temp file
+        if self.ASRMode in ["funasr", "sensevoice", "qwen3"] and file_url and os.path.exists(file_url):
+            try:
+                os.remove(file_url)
+            except Exception as e:
+                print(f"Error removing temp file: {e}")
         util.printInfo(1, self.username, "语音处理完成！ 耗时: {} ms".format(math.floor((time.time() - tm) * 1000)))
         if len(text) > 0:
             if cfg.config['source']['wake_word_enabled']:
