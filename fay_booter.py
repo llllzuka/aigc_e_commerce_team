@@ -194,7 +194,17 @@ def accept_audio_device_output_connect():
     global __running
     global DeviceInputListenerDict
     deviceSocketServer = socket.socket(socket.AF_INET,socket.SOCK_STREAM) 
-    deviceSocketServer.bind(("0.0.0.0",10001))   
+    
+    # 尝试绑定端口，如果被占用则重试或跳过
+    try:
+        deviceSocketServer.bind(("0.0.0.0",10001))   
+    except OSError as e:
+        if e.winerror == 10048:
+            util.log(1, "端口 10001 已被占用，远程音频输入服务无法启动。")
+            return
+        else:
+            raise e
+
     deviceSocketServer.listen(1)
     MyThread(target = device_socket_keep_alive).start() # 开启心跳包检测
     addr = None        

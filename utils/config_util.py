@@ -29,6 +29,7 @@ ollama_ip = None
 ollama_model = None
 tts_module = None
 qwen3_tts_url = None
+qwen3_asr_url = None
 key_ali_tss_key_id = None
 key_ali_tss_key_secret = None
 key_ali_tss_app_key = None
@@ -69,6 +70,7 @@ def load_config():
     global ollama_model
     global tts_module
     global qwen3_tts_url
+    global qwen3_asr_url
     global key_ali_tss_key_id
     global key_ali_tss_key_secret
     global key_ali_tss_app_key
@@ -114,6 +116,10 @@ def load_config():
         qwen3_tts_url = system_config.get('key', 'qwen3_tts_url')
     except:
         qwen3_tts_url = "http://127.0.0.1:8000/tts"
+    try:
+        qwen3_asr_url = system_config.get('key', 'qwen3_asr_url')
+    except:
+        qwen3_asr_url = "http://127.0.0.1:8001/asr"
     volcano_tts_appid = system_config.get('key', 'volcano_tts_appid')
     volcano_tts_access_token = system_config.get('key', 'volcano_tts_access_token')
     volcano_tts_cluster = system_config.get('key', 'volcano_tts_cluster')

@@ -10,7 +10,6 @@ from pydub import AudioSegment
 
 # 适应模型使用
 import numpy as np
-import fay_booter
 from ai_module import baidu_emotion
 from core import wsa_server
 from core.interact import Interact
@@ -111,12 +110,7 @@ class FeiFei:
 
         self.wsParam = None
         self.wss = None
-        # 强制检查配置中的 tts_module
-        if cfg.tts_module == 'qwen3':
-            from tts.qwen3 import Speech
-            self.sp = Speech()
-        else:
-            self.sp = Speech()
+        self.sp = Speech()
         self.speaking = False #声音是否在播放
         self.__running = True
         self.sp.connect()  #TODO 预连接
@@ -327,7 +321,7 @@ class FeiFei:
                 file_name = 'sample-' + str(int(time.time() * 1000)) + '.wav'
                 result = self.download_wav(audio_url, './samples/', file_name)
             else:
-                util.printInfo(1,  interact.data.get('user'), '正在请求 Qwen3-TTS 合成音频...')
+                util.printInfo(1,  interact.data.get('user'), '正在请求 TTS 合成音频...')
                 tm = time.time()
                 mood_voice = self.__get_mood_voice()
                 result = self.sp.to_sample(text.replace("*", ""), mood_voice)
@@ -396,6 +390,7 @@ class FeiFei:
     
     #推送远程音频
     def __send_remote_device_audio(self, file_url, interact):
+        import fay_booter  # 延迟导入，避免循环导入
         delkey = None    
         for key, value in fay_booter.DeviceInputListenerDict.items():
             if value.username == interact.data.get("user") and value.isOutput: #按username选择推送，booter.devicelistenerdice按用户名记录
@@ -421,6 +416,7 @@ class FeiFei:
                 wsa_server.get_web_instance().add_cmd({"remote_audio_connect": False, "Username" : interact.data.get('user')})
 
     def __is_send_remote_device_audio(self, interact):
+        import fay_booter  # 延迟导入，避免循环导入
         for key, value in fay_booter.DeviceInputListenerDict.items():
             if value.username == interact.data.get("user") and value.isOutput:
                 return True

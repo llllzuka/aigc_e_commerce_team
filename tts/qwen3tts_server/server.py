@@ -97,6 +97,22 @@ async def generate_tts(request: TTSRequest):
 async def health_check():
     return {"status": "ok", "model_loaded": model is not None}
 
+@app.get("/")
+async def root():
+    """根路径返回服务信息，避免 404"""
+    return {
+        "service": "Qwen3-TTS API Server",
+        "status": "running",
+        "docs_url": "/docs",
+        "health_check": "/health",
+        "model_loaded": model is not None
+    }
+
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """处理浏览器自动请求 favicon.ico"""
+    return {}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)

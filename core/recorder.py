@@ -3,10 +3,12 @@ import audioop
 import math
 import time
 import threading
+import os
 from abc import abstractmethod
 
 from asr.ali_nls import ALiNls
 from asr.funasr import FunASR
+from asr.qwen3_asr import Qwen3ASR
 from core import wsa_server
 from scheduler.thread_manager import MyThread
 from utils import util
@@ -46,15 +48,20 @@ class Recorder:
         self.username = 'User' #默认用户，子类实现时会重写
         self.channels = 1
         self.sample_rate = 16000
+        self.start_speaking_time = 0
 
     def asrclient(self):
         if self.ASRMode == "ali":
             asrcli = ALiNls(self.username)
         elif self.ASRMode == "funasr" or self.ASRMode == "sensevoice":
             asrcli = FunASR(self.username)
+        elif self.ASRMode == "qwen3":
+            asrcli = Qwen3ASR(self.username)
         return asrcli
 
     def save_buffer_to_file(self, buffer):
+        if not os.path.exists("cache_data"):
+            os.makedirs("cache_data")
         temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav", dir="cache_data")
         wf = wave.open(temp_file.name, 'wb')
         wf.setnchannels(1)
@@ -87,15 +94,23 @@ class Recorder:
         self.processing = True
         t = time.time()
         tm = time.time()
-        if self.ASRMode == "funasr"  or self.ASRMode == "sensevoice":
+        if self.ASRMode == "funasr"  or self.ASRMode == "sensevoice" or self.ASRMode == "qwen3":
             file_url = self.save_buffer_to_file(audio_data)
-            self.__aLiNls.send_url(file_url)
+            iat.send_url(file_url)
         
         # return
         # 等待结果返回
-        while not iat.done and time.time() - t < 1:
+        timeout = 125 if self.ASRMode == "qwen3" else 1
+        while not iat.done and time.time() - t < timeout:
             time.sleep(0.01)
         text = iat.finalResults
+
+        # Cleanup temp file
+        if self.ASRMode in ["funasr", "sensevoice", "qwen3"] and file_url and os.path.exists(file_url):
+            try:
+                os.remove(file_url)
+            except Exception as e:
+                print(f"Error removing temp file: {e}")
         util.printInfo(1, self.username, "语音处理完成！ 耗时: {} ms".format(math.floor((time.time() - tm) * 1000)))
         if len(text) > 0:
             if cfg.config['source']['wake_word_enabled']:
@@ -242,10 +257,16 @@ class Recorder:
                 self.__dynamic_threshold += (history_percentage - self.__dynamic_threshold) * 1
             
             #激活拾音
-            if percentage > self.__dynamic_threshold:
+            # 增加最大录音时长限制 (15秒)，防止因噪音导致长时间处于“聆听中”
+            # DEBUG: 打印状态
+            if isSpeaking and int(time.time()) % 2 == 0 and int(time.time() * 10) % 10 == 0:
+                 print(f"DEBUG: Listening... Duration={time.time() - self.start_speaking_time:.2f}s, Level={percentage:.4f}, Threshold={self.__dynamic_threshold:.4f}")
+
+            if percentage > self.__dynamic_threshold and (not isSpeaking or time.time() - self.start_speaking_time < 15):
                 last_speaking_time = time.time()
                 if not self.__processing and not isSpeaking and time.time() - last_mute_time > _ATTACK:
                     isSpeaking = True  #用户正在说话
+                    self.start_speaking_time = time.time()
                     util.printInfo(1, self.username,"聆听中...")
                     if wsa_server.get_web_instance().is_connected(self.username):
                         wsa_server.get_web_instance().add_cmd({"panelMsg": "聆听中...", 'Username' : self.username, 'robot': f'http://{cfg.fay_url}:5000/robot/Listening.jpg'})
@@ -253,12 +274,15 @@ class Recorder:
                         content = {'Topic': 'Unreal', 'Data': {'Key': 'log', 'Value': "聆听中..."}, 'Username' : self.username, 'robot': f'http://{cfg.fay_url}:5000/robot/Listening.jpg'}
                         wsa_server.get_instance().add_cmd(content)
                     concatenated_audio.clear()
-                    self.__aLiNls = self.asrclient()
                     try:
+                        self.__aLiNls = self.asrclient()
                         self.__aLiNls.start()
                     except Exception as e:
-                        print(e)
-                        util.printInfo(1, self.username, "aliyun asr 连接受限")
+                        print(f"Error starting ASR client: {e}")
+                        util.printInfo(1, self.username, "ASR 服务启动失败")
+                        isSpeaking = False
+                        continue
+
                     for i in range(len(self.__history_data) - 1): #当前data在下面会做发送，这里是发送激活前的音频数据，以免漏掉信息
                         buf = self.__history_data[i]
                         audio_data_list.append(self.__process_audio_data(buf, self.channels))
@@ -271,6 +295,7 @@ class Recorder:
                 last_mute_time = time.time()
                 if isSpeaking:
                     if time.time() - last_speaking_time > _RELEASE: #TODO 更换的vad更靠谱
+                        print(f"DEBUG: Stop Speaking. Silence duration={time.time() - last_speaking_time:.2f}s")
                         isSpeaking = False
                         self.__aLiNls.end()
                         util.printInfo(1, self.username, "语音处理中...")
