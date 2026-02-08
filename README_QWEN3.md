@@ -39,13 +39,13 @@ python3.12 -m venv .venv
 **Windows PowerShell**：
 
 ```powershell
-.venv\Scripts\Activate.ps1
+.venv\Scripts\Activate
 ```
 
 **Windows CMD**：
 
 ```cmd
-.venv\Scripts\activate.bat
+.venv\Scripts\activate
 ```
 
 激活成功后，命令行前面会显示 `(.venv)` 前缀。

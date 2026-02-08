@@ -73,7 +73,9 @@ async def asr_endpoint(file: UploadFile = File(...)):
 
     try:
         # 执行推理
+        print(f"Processing file: {tmp_path}, Size: {os.path.getsize(tmp_path)} bytes")
         result = asr_model.transcribe(tmp_path)
+        print(f"Raw inference result: {result}, Type: {type(result)}")
         
         text = ""
         if isinstance(result, list) and len(result) > 0:
